@@ -1,25 +1,11 @@
 #include <iostream>
-#include <GLFW/glfw3.h>
 
 class ConnectFour {
-    int board[6][7] = {};
+    int board[6][7];
     int turn = 1;
     int count = 0;
-
-public:
-
-    int getTurn() {
-        return turn;
-    }
-
-    int getCount() {
-        return count;
-    }
-
-    int get(int row, int column) {
-        return board[row][column];
-    }
-
+    bool done = false;
+    int recent = 0;
 
     //Returns 1 or 2 if a player won, a 0 if game is still going, and a -1 for a stalemate
     int won() {
@@ -84,7 +70,7 @@ public:
         }
         //Check for upward diagonal connections
         for (int row = 0; row < 3; row++) {
-            for (int column = 3; column < 7; column--) {
+            for (int column = 3; column < 7; column++) {
                 if (board[row][column]) {
                     color = board[row][column];
                     sum = board[row][column];
@@ -101,51 +87,92 @@ public:
         return 0;
     }
 
-    int drop(int column) {
-        int row = 5;
-        while (board[row][column]) {
-            row--;
-            if (row < 0) {
-                return 0;
+    //Give a numerical evaluation for game state, negative for player 1, positive for player 2 (AI)
+    int eval() {
+        int state = won();
+        switch (state) {
+        case -1:
+            return 0;
+        case 1:
+            return INT_MAX;
+        case 2:
+            return INT_MIN;
+        case 0:
+            int score = 0;
+            int scores[6][7] = { {3, 4, 5, 7, 5, 4, 3},{4, 6, 8, 10, 8, 6, 4}, {5, 8, 11, 13, 11, 8, 5}, {5, 8, 11, 13, 11, 8, 5}, {4, 6, 8, 10, 8, 6, 4}, {3, 4, 5, 7, 5, 4, 3} };
+            for (int i = 0; i < 6; i++) {
+                for (int j = 0; j < 7; j++) {
+                    switch (board[i][j]) {
+                    case 1:
+                        score -= scores[i][j];
+                        break;
+                    case 2:
+                        score += scores[i][j];
+                    }
+                }
+            }
+            return score;
+        }
+    }
+
+    //Undo the most recent move
+    void undo() {
+        if (recent == 0 || done) {
+            return;
+        }
+        int row = 0;
+        while (board[row][recent - 1] == 0) {
+            row++;
+        }
+        board[row][recent - 1] = 0;
+        recent = 0;
+        count--;
+        turn = 3 - turn;
+    }
+
+public:
+    ConnectFour() {
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                board[i][j] = 0;
             }
         }
-        board[row][column] = turn;
+    }
+
+    int getTurn() {
+        return turn;
+    }
+
+    int getCount() {
+        return count;
+    }
+
+    int get(int row, int column) {
+        return board[row][column];
+    }
+
+    //Place a token in a column, return a boolean based off if the move went through
+    bool drop(int column) {
+        if (done) {
+            return false;
+        }
+        int row = 5;
+        while (board[row][column - 1]) {
+            row--;
+            if (row < 0) {
+                recent = 0;
+                return false;
+            }
+        }
+        board[row][column - 1] = turn;
+        count++;
         turn = 3 - turn;
-        return won();
+        done = won() != 0;
+        recent = column;
+        return true;
     }
 };
 
 int main() {
-    GLFWwindow* window;
-
-    /* Initialize the library */
-    if (!glfwInit())
-        return -1;
-
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
-    if (!window)
-    {
-        glfwTerminate();
-        return -1;
-    }
-
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
-
-    /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window))
-    {
-        /* Render here */
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        /* Swap front and back buffers */
-        glfwSwapBuffers(window);
-
-        /* Poll for and process events */
-        glfwPollEvents();
-    }
-
-    glfwTerminate();
     return 0;
 }
