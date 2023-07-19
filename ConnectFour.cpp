@@ -1,4 +1,5 @@
 #include <iostream>
+#include <climits>
 
 class ConnectFour {
     int board[6][7];
@@ -130,6 +131,36 @@ class ConnectFour {
         turn = 3 - turn;
     }
 
+    //Recursive minimax algorithm
+    int minimax(ConnectFour state, int depth, bool maximizing) {
+        if(depth <= 0 || won() != 0){
+            return eval();
+        }
+
+        if (maximizing) {
+            ConnectFour copy = state; //Copy state to test
+            int max = INT_MIN;
+            for (int i = 1; i <= 7; i++) {
+                if (copy.drop(i)) {
+                    max = std::max(max, minimax(copy, depth - 1, false));
+                    undo();
+                }
+            }
+            return max;
+        }
+        else {
+            ConnectFour copy = state; //Copy state to test
+            int min = INT_MAX;
+            for (int i = 1; i <= 7; i++) {
+                if (copy.drop(i)) {
+                    min = std::min(min, minimax(copy, depth - 1, true));
+                    undo();
+                }
+            }
+            return min;
+        }
+    }
+
 public:
     ConnectFour() {
         for (int i = 0; i < 6; i++) {
@@ -138,6 +169,15 @@ public:
             }
         }
     }
+
+    ConnectFour(const ConnectFour& old) {
+        for (int i = 0; i < 6; i++) {
+            for (int j = 0; j < 7; j++) {
+                board[i][j] = old.board[i][j];
+            }
+        }
+    }
+    ConnectFour& operator=(const ConnectFour& old);
 
     int getTurn() {
         return turn;
@@ -170,6 +210,26 @@ public:
         done = won() != 0;
         recent = column;
         return true;
+    }
+
+    //Find best move
+    int AiMove(ConnectFour self, int depth) {
+        if (depth <= 0) {
+            return 0;
+        }
+        int bestMove = 0;
+        int bestScore = INT_MIN;
+        ConnectFour copy = self;
+        for (int i = 1; i <= 7; i++) {
+            if (copy.drop(i)) {
+                int temp = minimax(copy, depth - 1, false);
+                if (temp >= bestScore) {
+                    bestScore = temp;
+                    bestMove = i;
+                }
+            }
+        }
+        return bestMove;
     }
 };
 
